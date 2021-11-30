@@ -4,12 +4,12 @@ metadata = {'apiLevel': '2.8'}
 protocol = simulate.get_protocol_api('2.8')
 
 #labware
-plate = protocol.load_labware('corning_96_wellplate_360ul_flat', 1)
+plate = protocol.load_labware('costar3370flatbottomtransparent_96_well_200ul', 1)
 tiprack_1 = protocol.load_labware('opentrons_96_tiprack_300ul', 2)
 tiprack_2 = protocol.load_labware('opentrons_96_tiprack_300ul', 4)
 p300 = protocol.load_instrument('p300_multi_gen2', 'left', tip_racks=[tiprack_1])
 
-reservoir = protocol.load_labware('usascientific_12_reservoir_22ml', 3)
+reservoir = protocol.load_labware('4ti0131_12_reservoir_21000ul', 3) #changed the name of the 
 #A1 row of the reservoir is flourescein
 #A2 row is PBS
 
