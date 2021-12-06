@@ -1,0 +1,129 @@
+## Golden gate assembly making 3 different promoters
+
+from opentrons import simulate
+metadata = {'apiLevel': '2.8'}
+protocol = simulate.get_protocol_api('2.8')
+
+#Labware
+tiprack1 = protocol.load_labware('opentrons_96_tiprack_20ul', 1) #change to p20 tiprack
+tiprack2 = protocol.load_labware('opentrons_96_tiprack_300ul', 2)
+
+heatblock = protocol.load_module('tempdeck', 4)
+plate1 = heatblock.load_labware('corning_96_wellplate_360ul_flat')
+
+thermocycler = protocol.load_module('Thermocycler Module')
+plate2 = thermocycler.load_labware('corning_96_wellplate_360ul_flat')
+
+#pipette
+p20 = protocol.load_instrument('p20_single_gen2', 'left', tip_racks=[tiprack1])
+p300 = protocol.load_instrument('p300_single_gen2', 'right', tip_racks=[tiprack2])
+
+##commands
+
+#set block to 4 degrees
+heatblock.set_temperature(4)
+
+
+##pipette into plate in thermocycler
+
+#pipette MasterMix
+p300.distribute(
+    12, 
+    plate1['A1'], 
+    [plate2.wells_by_name()[well_name] for well_name in ['D5', 'D6', 'D7']],
+    air_gap = 5)
+
+#CDS
+p20.distribute(
+    2, 
+    plate1['A2'], 
+    [plate2.wells_by_name()[well_name] for well_name in ['D5', 'D6', 'D7']],
+    air_gap = 5)
+
+#Term
+p20.distribute(
+    2, 
+    plate1['A3'], 
+    [plate2.wells_by_name()[well_name] for well_name in ['D5', 'D6', 'D7']],
+    air_gap = 5)
+
+#Vector
+p20.distribute(
+    2, 
+    plate1['A4'], 
+    [plate2.wells_by_name()[well_name] for well_name in ['D5', 'D6', 'D7']],
+    air_gap = 5)
+
+#pipette the promoters
+p20.transfer(
+    2,
+    plate1.wells('A5', 'A6', 'A7'),
+    plate2.wells('D5', 'D6', 'D7'),
+    air_gap = 2,
+    mix_after=(2,10),
+    blow_out = True,
+    blowout_location = 'destination well',
+    )
+
+#run the thermocycler
+thermocycler.close_lid()
+thermocycler.set_lid_temperature(100)
+    
+profile = [
+    {'temperature': 37, 'hold_time_seconds': 300},
+    {'temperature': 16, 'hold_time_seconds': 300},
+    {'temperature':4, 'hold_time_minutes':10}]
+
+thermocycler.execute_profile(steps=profile, repetitions=35, block_max_volume=20)
+ 
+thermocycler.set_block_temperature(4)
+    
+thermocycler.open_lid()
+
+#during this step we put the block in the freezer
+
+#pipette into competent cells
+p300.distribute(
+    50, 
+    plate1['A1'], 
+    [plate2.wells_by_name()[well_name] for well_name in ['E5', 'E6', 'E7']],
+    air_gap = 5)
+
+p20.transfer(
+    10,
+    plate2.wells('D5', 'D6', 'D7'),
+    plate2.wells('E5', 'E6', 'E7'),
+    air_gap = 2,
+    blow_out = True)
+
+
+#heat shock step
+thermocycler.close_lid()
+thermocycler.set_lid_temperature(100)
+
+profile = [
+    {'temperature':42, 'hold_time_seconds':45},
+    {'temperature':4, 'hold_time_minutes':10}]
+thermocycler.execute_profile(steps=profile, repetitions=1, block_max_volume=60)
+thermocycler.open_lid()
+
+#recovery - add SOC
+
+p300.distribute(
+    50, 
+    plate1['A2'], 
+    [plate2.wells_by_name()[well_name] for well_name in ['E5', 'E6', 'E7']],
+    air_gap = 5)
+
+thermocycler.close_lid()
+thermocycler.set_lid_temperature(100)
+
+profile = [
+    {'temperature': 37, 'hold_time_minutes': 60},]
+thermocycler.execute_profile(steps=profile, repetitions=1, block_max_volume=60)
+thermocycler.open_lid()
+
+#plate cells out of opentrons
+
+for line in protocol.commands(): 
+    print(line)
